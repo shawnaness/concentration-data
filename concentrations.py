@@ -205,6 +205,53 @@ def scb_pathway_pairs(scb, uuids):
 		decimal = float(v) / float(num_students)
 		print(k + ": {:.2f}".format(decimal) + " (%d / %d)" % (v, num_students))
 
+def by_intro_course(degree, uuids, num_pathways):
+	student_ids = list(degree.keys())
+	sequence_1 = {}
+	num_1 = 0
+	sequence_2 = {}
+	num_2 = 0
+	sequence_3 = {}
+	num_3 = 0
+	for student in student_ids:
+		plan = student_plan(degree[student], uuids)
+		sequence = []
+		pathways = []
+		for key in plan:
+			if key.startswith("Introductory Courses"):
+				sequence.append(key)
+			if key.startswith("Pathways"):
+				pathways.append(key)
+		if len(sequence) == 1 and len(pathways) == num_pathways:
+			if sequence[0] == "Introductory Courses - Sequence 1":
+				curr_seq = sequence_1
+				num_1 += 1
+			elif sequence[0] == "Introductory Courses - Sequence 2":
+				curr_seq = sequence_2
+				num_2 += 1
+			elif sequence[0] == "Introductory Courses - Sequence 3":
+				curr_seq = sequence_3
+				num_3 += 1
+			for p in pathways:
+				if p not in curr_seq:
+					curr_seq[p] = 0
+				curr_seq[p] += 1
+		else:
+			print(plan)
+	print("CS15/16:")
+	for (k, v) in sequence_1.items():
+		decimal = float(v) / float(num_1)
+		print(k + ": {:.2f}".format(decimal) + " (%d / %d)" % (v, num_1))
+	print("CS17/18:")
+	for (k, v) in sequence_2.items():
+		decimal = float(v) / float(num_2)
+		print(k + ": {:.2f}".format(decimal) + " (%d / %d)" % (v, num_2))
+	print("CS19:")
+	for (k, v) in sequence_3.items():
+		decimal = float(v) / float(num_3)
+		print(k + ": {:.2f}".format(decimal) + " (%d / %d)" % (v, num_3))
+
+
 
 def main():
 	taken_file = "COMP courses taken.json"
@@ -218,8 +265,15 @@ def main():
 	# print("SCB percentages:")
 	# num_students_pathways(SCB, uuids)
 
-	print("SCB pathway pairs:")
-	scb_pathway_pairs(SCB, uuids)
+	# print("SCB pathway pairs:")
+	# scb_pathway_pairs(SCB, uuids)
+
+	# print("AB, by intro course:")
+	# by_intro_course(AB, uuids, num_pathways=1)
+
+	print("SCB, by intro course:")
+	by_intro_course(SCB, uuids, num_pathways=2)
+	
 
 if __name__ == "__main__":
 	main()
