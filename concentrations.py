@@ -167,20 +167,30 @@ def student_plan(student, uuids):
 			print("no requirement ID found for " + course_name + ": " + course['requirement_uuid'])
 	return plan
 
-def num_students_pathways(degree, uuids):
+def num_students_pathways(degree, uuids, num_pathways):
 	student_ids = list(degree.keys())
-	num_students = len(student_ids)
+	num_students = 0
 	all_categories = {}
 	for student in student_ids:
 		plan = student_plan(degree[student], uuids)
+		sequence = []
+		pathways = []
 		for key in plan:
-			if key not in all_categories:
-				all_categories[key] = 0
-			all_categories[key] += 1
+			if key.startswith("Introductory Courses"):
+				sequence.append(key)
+			if key.startswith("Pathways"):
+				pathways.append(key)
+		if len(sequence) == 1 and len(pathways) == num_pathways:
+			num_students += 1
+			for category in sequence + pathways:
+				if category not in all_categories:
+					all_categories[category] = 0
+				all_categories[category] += 1
+		else:
+			print(plan)
 	for (k, v) in all_categories.items():
-		if k.startswith("Introductory Courses") or k.startswith("Pathways"):
-			decimal = float(v) / float(num_students)
-			print(k + ": {:.2f}".format(decimal) + " (%d / %d)" % (v, num_students))
+		decimal = float(v) / float(num_students)
+		print(k + ": {:.2f}".format(decimal) + " (%d / %d)" % (v, num_students))
 
 def scb_pathway_pairs(scb, uuids):
 	student_ids = list(scb.keys())
@@ -260,19 +270,18 @@ def main():
 	(SCB, AB) = create_courses_dicts(taken_file)
 	(uuids, courses) = process_defs(defs_file)
 
-	# print("AB percentages:")
-	# num_students_pathways(AB, uuids)
-	# print("SCB percentages:")
-	# num_students_pathways(SCB, uuids)
+	print("AB percentages:")
+	num_students_pathways(AB, uuids, num_pathways=1)
+	print("SCB percentages:")
+	num_students_pathways(SCB, uuids,num_pathways=2)
 
 	# print("SCB pathway pairs:")
 	# scb_pathway_pairs(SCB, uuids)
 
 	# print("AB, by intro course:")
 	# by_intro_course(AB, uuids, num_pathways=1)
-
-	print("SCB, by intro course:")
-	by_intro_course(SCB, uuids, num_pathways=2)
+	# print("SCB, by intro course:")
+	# by_intro_course(SCB, uuids, num_pathways=2)
 	
 
 if __name__ == "__main__":
