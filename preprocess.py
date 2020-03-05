@@ -8,7 +8,7 @@ PARSE STUDENT COURSES
 def parse_student_courses(file):
 	# file contains a list of dictionaries
 	# each dictionary is a course taken by a student
-	read_file = open(file, "r")
+	read_file = open(file, 'r')
 	student_data = json.load(read_file)
 
 	# KEY: student_id, VALUE: list of courses declared
@@ -19,9 +19,9 @@ def parse_student_courses(file):
 		deg = student_course['degree_short']
 		student_id = student_course['declaration_uuid']
 
-		if deg == "Sc.B.":
+		if deg == 'Sc.B.':
 			use_dict = SCB
-		elif deg == "A.B.":
+		elif deg == 'A.B.':
 			use_dict = AB
 		else:
 			raise Exception('Unknown degree: ' + deg)
@@ -39,13 +39,17 @@ PARSE DECLARATION REQUIREMENTS
 def parse_declaration_reqs(file):
 	# file contains a list of dictionaries
 	# each dictionary contains requirements for a concentration declaration
-	read_file = open(file, "r")
+	read_file = open(file, 'r')
 	program_definitions = json.load(read_file)
 
 	# KEY: declaration title, VALUE: dictionary of program plan (uuids)
 	uuid_req_dicts = {}
 	# KEY: declaration title, VALUE: dictionary of program plan (course name)
 	course_req_dicts = {}
+	# KEY: declaration title, VALUE: dictionary of uuid to course
+	all_uuid_to_course = {}
+	# KEY: declaration title, VALUE: dictionary of course to uuid
+	all_course_to_uuid = {}
 	for program in program_definitions:
 		# parse definition plan into requirement areas
 		uuids_dict, courses_dict, uuid_to_course, course_to_uuid = \
@@ -62,8 +66,10 @@ def parse_declaration_reqs(file):
 
 		uuid_req_dicts[title] = uuid_to_category
 		course_req_dicts[title] = course_to_category
+		all_uuid_to_course[title] = uuid_to_course
+		all_course_to_uuid[title] = course_to_uuid
 	read_file.close()
-	return uuid_req_dicts, course_req_dicts, uuid_to_course, course_to_uuid
+	return uuid_req_dicts, course_req_dicts, all_uuid_to_course, all_course_to_uuid
 
 
 def parse_program_spec(program):
@@ -73,7 +79,7 @@ def parse_program_spec(program):
 	all_course_to_uuid = defaultdict(list)
 	requirements = program['requirement_definitions_json']
 	for req in requirements:
-		r_title = req['title']
+		r_title = req['title'].strip()
 		if r_title in ['Calculus Prerequisite', 'Additional Courses', \
 		'Professional Track', 'Capstone Course']:
 			uuids, courses, uuid_to_course, course_to_uuid = \
@@ -89,7 +95,7 @@ def parse_program_spec(program):
 			intro_courses_dict = {}
 			for sequence in req['requirement_definitions'][0]['requirement_definitions']:
 				s_title = sequence['title']
-				uuids, courses, uuid_to_course, course_to_uuid = 
+				uuids, courses, uuid_to_course, course_to_uuid = \
 					create_category_dict([sequence])
 				intro_uuids_dict[s_title] = uuids
 				intro_courses_dict[s_title] = courses
@@ -147,7 +153,7 @@ def parse_program_spec(program):
 			uuids_dict[r_title] = pathway_uuids_dict
 			courses_dict[r_title] = pathway_courses_dict
 		else:
-			print("Unknown requirements category: " + r_title)
+			print('Unknown requirements category: ' + r_title)
 	return uuids_dict, courses_dict, all_uuid_to_course, all_course_to_uuid
 
 
@@ -176,10 +182,13 @@ def create_category_dict(req_list):
 				for (k, v) in sub_ctu.items():
 					course_to_uuid[k].extend(v)
 			else:
-				uuid = req['requirement_uuid']
-				course = req['title']
+				uuid = req['requirement_uuid'].strip()
+				course = req['title'].strip()
 				uuids.append(uuid)
-				courses.append(course)
+				if 'subject_code' in req and 'course_number' in req:
+					courses.append(req['subject_code'] + req['course_number'])
+				else:
+					courses.append(course)
 				uuid_to_course[uuid].append(course)
 				course_to_uuid[course].append(uuid)
 		return uuids, courses, uuid_to_course, course_to_uuid
@@ -207,9 +216,9 @@ def flatten_dict(key, d):
 		if isinstance(v, dict):
 			sub_dict = flatten_dict(k, v)
 			for (sub_k, sub_v) in sub_dict.items():
-				new_key = key + '/' + sub_k
+				new_key = key + ' - ' + sub_k
 				new_dict[new_key] = sub_v
 		else:
-			new_key = key + '/' + k
+			new_key = key + ' - ' + k
 			new_dict[new_key] = v
 	return new_dict
