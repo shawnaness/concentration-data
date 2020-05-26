@@ -1,6 +1,6 @@
 from preprocess import *
 from collections import defaultdict
-
+from copy import copy
 
 def get_student_term_id(student):
 	# use first course entry for metadata
@@ -198,6 +198,61 @@ def pathways_touched_by_intro(degree, uuids, courses):
 		decimal = float(v) / float(num_3)
 		print(k + ": {:.2f}".format(decimal) + " (%d / %d)" % (v, num_3))
 
+def scb_pathway_pairs(scb, uuids):
+	student_ids = list(scb.keys())
+	num_students = 0
+	all_pathway_pairs = defaultdict(int)
+	for student in student_ids:
+		plan, _, _ = student_plan(scb[student], uuids)
+		pathways = set()
+		for key in plan:
+			if key.startswith('Pathways'):
+				pathway = ' - '.join(key.split(' - ')[0:2])
+				pathways.add(pathway)
+		if len(pathways) != 2:
+			print('Declared', len(pathways), 'pathways.')
+		else:
+			list_pathways = sorted(pathways)
+			num_students += 1
+			pathways_str = ', '.join(list_pathways)
+			all_pathway_pairs[pathways_str] += 1
+	for (k, v) in all_pathway_pairs.items():
+		decimal = float(v) / float(num_students)
+		print(k + ': {:.2f}'.format(decimal) + '(%d / %d)' % (v, num_students))
+
+def courses_in_pathway(degree, uuids, pathway):
+	student_ids = list(degree.keys())
+	num_students = 0
+	all_pathway_courses = defaultdict(int)
+	all_pathway_combos = defaultdict(int)
+	for student in student_ids:
+		plan, _, _ = student_plan(degree[student], uuids)
+		core = []
+		related = []
+		pathway_courses = []
+		for key, value in plan.items():
+			if key == ('Pathways - ' + pathway + ' - Core Courses'):
+				for v in value:
+					core.append('Core: ' + v)
+			elif key == ('Pathways - ' + pathway + ' - Related Courses'):
+				for v in value:
+					related.append('Related: ' + v)
+			pathway_courses = (core + related)
+			pathway_courses.sort()
+		if len(core) >= 2 or (len(core) >= 1 and len(related) >= 1):
+			num_students += 1
+			for course in pathway_courses:
+				all_pathway_courses[course] += 1
+			combo = ', '.join(pathway_courses)
+			all_pathway_combos[combo] += 1
+	for (k, v) in all_pathway_courses.items():
+		decimal = float(v) / float(num_students)
+		print(k + ': {:.2f}'.format(decimal) + ' (%d / %d)' % (v, num_students))
+	for (k, v) in all_pathway_combos.items():
+		decimal = float(v) / float(num_students)
+		print(k + ': {:.2f}'.format(decimal) + ' (%d / %d)' % (v, num_students))
+
+
 def main():
 	taken_file = 'COMP courses taken.json'
 	defs_file = 'COMP program defs.json'
@@ -205,11 +260,13 @@ def main():
 	(SCB, AB) = parse_student_courses(taken_file)
 	(uuids, courses, uuid_to_course, course_to_uuid) = parse_declaration_reqs(defs_file)
 
-	# analyze_degree_by_intro(AB, uuids)
-	# analyze_degree_by_intro(SCB, uuids)
+	combined = copy(AB)
+	combined.update(SCB)
+
+	analyze_degree_by_intro(AB, uuids)
+	analyze_degree_by_intro(SCB, uuids)
 	# analyze_pathway_by_intro(AB, uuids, num_pathways=1)
 	# analyze_pathway_by_intro(SCB, uuids, num_pathways=2)
-
 
 	# analyze_pathways(AB, uuids, num_pathways=1)
 	# analyze_pathways(SCB, uuids, num_pathways=2)
@@ -217,6 +274,11 @@ def main():
 
 	# pathways_touched_by_intro(AB, uuids, courses)
 	# pathways_touched_by_intro(SCB, uuids, courses)
+	# pathways_touched_by_intro(combined, uuids, courses)
+
+	# scb_pathway_pairs(SCB, uuids)
+
+	# courses_in_pathway(combined, uuids, 'Data')
 
 if __name__ == '__main__':
 	main()
